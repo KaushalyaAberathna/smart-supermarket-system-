@@ -115,4 +115,35 @@ class ProductDetector:
 
         return detections, steps
 
+        # ------------------------------------------------------------------
+    def draw_detections(self, image, detections):
+        """Draw a bounding box and a "Product N" label for each detection."""
+        annotated = image.copy()
+        font = getattr(cv2, config.LABEL_FONT)
+
+        for det in detections:
+            x, y, w, h = det["bbox"]
+            cv2.rectangle(
+                annotated, (x, y), (x + w, y + h),
+                config.BOUNDING_BOX_COLOR, config.BOUNDING_BOX_THICKNESS,
+            )
+
+            label = f"Product {det['id']}"
+            (text_w, text_h), baseline = cv2.getTextSize(
+                label, font, config.LABEL_FONT_SCALE, config.LABEL_THICKNESS
+            )
+            # Filled label background above the box for readability; clipped
+            # to y=0 so labels on products near the top edge stay on-screen.
+            label_top = max(0, y - text_h - baseline - 4)
+            cv2.rectangle(
+                annotated, (x, label_top), (x + text_w + 4, y),
+                config.BOUNDING_BOX_COLOR, -1,
+            )
+            cv2.putText(
+                annotated, label, (x + 2, y - 4), font,
+                config.LABEL_FONT_SCALE, (0, 0, 0), config.LABEL_THICKNESS, cv2.LINE_AA,
+            )
+
+        return annotated
+
     
