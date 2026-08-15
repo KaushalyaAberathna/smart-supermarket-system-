@@ -146,4 +146,43 @@ class ProductDetector:
 
         return annotated
 
+
+# CONVENIENCE FUNCTION
+
+def detect_products(image, display=False, save_path=None):
+    """Detect products in `image`, draw annotated bounding boxes, and
+    optionally display/save the result. Returns (detections, annotated_image, steps).
+    """
+    detector = ProductDetector()
+    detections, steps = detector.detect(image)
+    annotated = detector.draw_detections(image, detections)
+
+    print(f"[detection] Found {len(detections)} product candidate(s) "
+          f"(min_contour_area={config.MIN_CONTOUR_AREA}px^2 at working resolution).")
+
+    if display or save_path:
+        _visualize(annotated, save_path=save_path, show=display)
+
+    return detections, annotated, steps
+
+
+def _visualize(annotated_image, save_path=None, show=True):
+    fig = plt.figure(figsize=(10, 8))
+    plt.imshow(cv2.cvtColor(annotated_image, cv2.COLOR_BGR2RGB))
+    plt.title("Detected Products")
+    plt.axis("off")
+    plt.tight_layout()
+
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        print(f"[detection] Saved annotated detection image to: {save_path}")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+
+
     
