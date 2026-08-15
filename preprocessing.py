@@ -198,6 +198,49 @@ class ImagePreprocessor:
         cleaned = self.opening(closed)
         return cleaned
 
+       
+    # FULL PIPELINE
+    
+    def run(self, image):
+        """Run every preprocessing step in order and return all intermediate
+        results plus the final cleaned binary mask, keyed by step name.
+
+        Returns
+        -------
+        dict[str, np.ndarray] with keys (in pipeline order):
+            original, resized, blurred, gray, threshold, canny,
+            eroded, dilated, opened, closed, final_mask
+        """
+        if image is None:
+            raise ValueError("ImagePreprocessor.run() received a None image.")
+
+        resized = self.resize(image)
+        blurred = self.gaussian_blur(resized)
+        gray = self.to_grayscale(blurred)
+        binary = self.threshold(gray)
+        edges = self.canny_edges(gray)
+
+        eroded = self.erode(binary)
+        dilated = self.dilate(binary)
+        opened = self.opening(binary)
+        closed = self.closing(binary)
+        final_mask = self.clean_mask(binary)
+
+        return {
+            "original": image,
+            "resized": resized,
+            "blurred": blurred,
+            "gray": gray,
+            "threshold": binary,
+            "canny": edges,
+            "eroded": eroded,
+            "dilated": dilated,
+            "opened": opened,
+            "closed": closed,
+            "final_mask": final_mask,
+        }
+
+
 
 
     
