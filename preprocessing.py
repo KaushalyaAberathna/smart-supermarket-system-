@@ -152,6 +152,52 @@ class ImagePreprocessor:
         """
         return cv2.Canny(gray, self.canny_low, self.canny_high)
 
+    
+    # STEP 6: MORPHOLOGICAL OPERATIONS
+    
+    def erode(self, binary):
+        """Shrinks white regions. WHY: strips away thin noise speckles and
+        separates two products that are touching by a thin bridge of pixels.
+        """
+        return cv2.erode(binary, self.morph_kernel, iterations=self.morph_iterations)
+
+    def dilate(self, binary):
+        """Grows white regions. WHY: re-thickens object silhouettes after
+        erosion, and on its own can bridge small gaps within one product.
+        """
+        return cv2.dilate(binary, self.morph_kernel, iterations=self.morph_iterations)
+
+    def opening(self, binary):
+        """Erosion followed by dilation. WHY: removes small white noise
+        specks (salt noise) from the background while restoring the size of
+        genuine (larger) product blobs -- noise disappears during erosion
+        and never comes back during dilation because it was fully erased.
+        """
+        return cv2.morphologyEx(
+            binary, cv2.MORPH_OPEN, self.morph_kernel, iterations=self.morph_iterations
+        )
+
+    def closing(self, binary):
+        """Dilation followed by erosion. WHY: fills small black holes INSIDE
+        a product's silhouette (e.g. a specular highlight or printed text
+        creating a dark gap) without growing the object's outer boundary,
+        so cv2.findContours later sees one solid blob per product.
+        """
+        return cv2.morphologyEx(
+            binary, cv2.MORPH_CLOSE, self.morph_kernel, iterations=self.morph_iterations
+        )
+
+    def clean_mask(self, binary):
+        """Recommended cleanup chain fed into Module 3 (detection.py):
+        closing first (fill internal holes) then opening (strip stray
+        background speckles). This order is deliberate -- opening first
+        could erase a thin but genuine part of a product before closing
+        gets a chance to repair it.
+        """
+        closed = self.closing(binary)
+        cleaned = self.opening(closed)
+        return cleaned
+
 
 
     
