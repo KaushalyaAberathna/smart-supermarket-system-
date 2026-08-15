@@ -292,6 +292,41 @@ def preprocess_image(image, display=False, save_path=None):
         visualize_steps(steps, save_path=save_path, show=display)
     return steps
 
+# DEMO / SELF-TEST
+
+if __name__ == "__main__":
+    # Prefer a user-supplied basket/table photo from images/, since that is
+    # what this pipeline is actually designed for. If none has been added
+    # yet, fall back to a single Freiburg dataset sample purely so this
+    
+    demo_image_path = None
+    if os.path.isdir(config.TEST_IMAGES_DIR):
+        candidates = [
+            f for f in os.listdir(config.TEST_IMAGES_DIR)
+            if f.lower().endswith((".png", ".jpg", ".jpeg"))
+        ]
+        if candidates:
+            demo_image_path = os.path.join(config.TEST_IMAGES_DIR, candidates[0])
+
+    if demo_image_path is None:
+        fallback_class = config.CLASS_NAMES[0]  # "BEANS"
+        fallback_dir = os.path.join(config.DATASET_DIR, fallback_class)
+        fallback_file = sorted(os.listdir(fallback_dir))[0]
+        demo_image_path = os.path.join(fallback_dir, fallback_file)
+        print(
+            "[preprocessing] No image found in images/. Using a Freiburg "
+            f"dataset sample instead for this demo: {demo_image_path}\n"
+            "[preprocessing] Add a real basket/table photo to images/ to "
+            "test the pipeline on its intended input."
+        )
+
+    demo_image = cv2.imread(demo_image_path)
+    if demo_image is None:
+        raise FileNotFoundError(f"Could not read demo image: {demo_image_path}")
+
+    output_path = os.path.join(config.OUTPUT_DIR, "preprocessing_steps_demo.png")
+    preprocess_image(demo_image, display=config.SHOW_PLOTS, save_path=output_path)
+
 
 
 
