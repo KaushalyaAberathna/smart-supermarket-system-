@@ -52,4 +52,10 @@ class ImagePreprocessor:
     def gaussian_blur(self, image):
         return cv2.GaussianBlur(image, self.gaussian_kernel, self.gaussian_sigma)
 
+        
+    def to_grayscale(self, image):
+        return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    
+
     
