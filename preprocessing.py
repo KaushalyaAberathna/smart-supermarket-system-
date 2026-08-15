@@ -56,6 +56,33 @@ class ImagePreprocessor:
     def to_grayscale(self, image):
         return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
+        
+    def threshold(self, gray):
+
+        invert_flag = cv2.THRESH_BINARY_INV if self.invert else cv2.THRESH_BINARY
+
+        if self.threshold_method == "adaptive":
+            block_size = self.adaptive_block_size
+            if block_size % 2 == 0:
+                block_size += 1  # cv2 requires an odd block size
+            binary = cv2.adaptiveThreshold(
+                gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                invert_flag, block_size, self.adaptive_c,
+            )
+        elif self.threshold_method == "otsu":
+            _, binary = cv2.threshold(
+                gray, 0, 255, invert_flag + cv2.THRESH_OTSU
+            )
+        elif self.threshold_method == "binary":
+            _, binary = cv2.threshold(
+                gray, self.binary_thresh_value, 255, invert_flag
+            )
+        else:
+            raise ValueError(f"Unknown threshold_method: {self.threshold_method}")
+
+        return binary
+
+
     
 
     
