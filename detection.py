@@ -36,3 +36,16 @@ class ProductDetector:
         """
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         return contours
+        
+    def filter_contours(self, contours):
+        """Discard contours smaller than min_contour_area.
+
+        WHY: leftover noise (label text fragments, mask speckle that survived
+        morphology, shadows) produces many tiny contours that are not real
+        products. Real supermarket products, even small ones, occupy a
+        meaningfully larger area than noise at the working resolution set in
+        config.PREPROCESS_RESIZE_WIDTH.
+        """
+        return [c for c in contours if cv2.contourArea(c) >= self.min_contour_area]
+
+    
