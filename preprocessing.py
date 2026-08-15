@@ -47,3 +47,9 @@ class ImagePreprocessor:
         scale = self.resize_width / float(w)
         new_size = (self.resize_width, int(h * scale))
         return cv2.resize(image, new_size, interpolation=cv2.INTER_AREA)
+
+
+    def gaussian_blur(self, image):
+        return cv2.GaussianBlur(image, self.gaussian_kernel, self.gaussian_sigma)
+
+    
