@@ -239,6 +239,58 @@ class ImagePreprocessor:
             "closed": closed,
             "final_mask": final_mask,
         }
+    
+# VISUALIZATION HELPER
+
+def visualize_steps(steps, save_path=None, show=config.SHOW_PLOTS):
+    """Display every preprocessing step in one figure grid, and optionally
+    save it to disk. Satisfies the "display intermediate results for every
+    preprocessing step" requirement.
+    """
+    titles = [
+        "1. Resized", "2. Gaussian Blur", "3. Grayscale", "4. Threshold",
+        "5. Canny Edges", "6a. Eroded", "6b. Dilated", "6c. Opened",
+        "6d. Closed", "Final Mask (Closing->Opening)",
+    ]
+    keys = [
+        "resized", "blurred", "gray", "threshold", "canny",
+        "eroded", "dilated", "opened", "closed", "final_mask",
+    ]
+
+    fig, axes = plt.subplots(2, 5, figsize=(20, 8))
+    axes = axes.ravel()
+    for ax, title, key in zip(axes, titles, keys):
+        img = steps[key]
+        if img.ndim == 3:  # BGR color image -> convert for correct matplotlib colors
+            ax.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        else:  # single-channel binary/grayscale image
+            ax.imshow(img, cmap="gray")
+        ax.set_title(title, fontsize=10)
+        ax.axis("off")
+
+    plt.tight_layout()
+
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        print(f"[preprocessing] Saved preprocessing steps figure to: {save_path}")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+
+def preprocess_image(image, display=False, save_path=None):
+    """Convenience function: run the full pipeline with default config
+    settings and optionally display/save the intermediate steps. This is the
+    function other modules (detection.py) should import and call.
+    """
+    preprocessor = ImagePreprocessor()
+    steps = preprocessor.run(image)
+    if display or save_path:
+        visualize_steps(steps, save_path=save_path, show=display)
+    return steps
 
 
 
