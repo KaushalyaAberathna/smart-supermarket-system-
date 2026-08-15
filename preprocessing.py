@@ -82,6 +82,11 @@ class ImagePreprocessor:
 
         return binary
 
+        # STEP 5: CANNY EDGE DETECTION (optional diagnostic)
+    def canny_edges(self, gray):
+        return cv2.Canny(gray, self.canny_low, self.canny_high)
+
+
 
     
 
