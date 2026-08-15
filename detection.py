@@ -23,3 +23,16 @@ class ProductDetector:
 
     def __init__(self, min_contour_area=config.MIN_CONTOUR_AREA):
         self.min_contour_area = min_contour_area
+
+            
+    def find_contours(self, mask):
+        """Extract external contours from a binary mask.
+
+        cv2.RETR_EXTERNAL only keeps outermost contours (we don't care about
+        holes inside a product's silhouette -- those were already patched by
+        the morphological closing step in preprocessing). CHAIN_APPROX_SIMPLE
+        compresses straight contour segments to their endpoints, which is
+        enough for bounding-box computation and cheaper to store.
+        """
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        return contours
