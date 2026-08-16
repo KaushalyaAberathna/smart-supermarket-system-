@@ -62,3 +62,40 @@ def save_crops(crops, output_dir=config.CROPS_DIR):
 
     print(f"[segmentation] Saved {len(paths)} crop(s) to: {output_dir}")
     return paths
+
+
+
+# VISUALIZATION
+
+def visualize_crops(crops, save_path=None, show=config.SHOW_PLOTS):
+    """Display every segmented product candidate in a grid, labeled by id."""
+    n = len(crops)
+    if n == 0:
+        print("[segmentation] No crops to display.")
+        return
+
+    cols = min(5, n)
+    rows = int(np.ceil(n / cols))
+    fig, axes = plt.subplots(rows, cols, figsize=(3 * cols, 3 * rows))
+    axes = np.atleast_1d(axes).ravel()
+
+    for ax, c in zip(axes, crops):
+        ax.imshow(cv2.cvtColor(c["crop"], cv2.COLOR_BGR2RGB))
+        ax.set_title(f"Product {c['id']}", fontsize=10)
+        ax.axis("off")
+    for ax in axes[n:]:  # hide unused grid cells
+        ax.axis("off")
+
+    plt.tight_layout()
+
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        print(f"[segmentation] Saved crops grid figure to: {save_path}")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+
