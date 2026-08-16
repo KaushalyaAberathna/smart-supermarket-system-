@@ -98,4 +98,23 @@ def visualize_crops(crops, save_path=None, show=config.SHOW_PLOTS):
     else:
         plt.close(fig)
 
+# CONVENIENCE FUNCTION
+
+def segment_products(image, detections, display=False, save_path=None, persist_crops=False):
+    """Crop every detection out of `image` and optionally display/save/persist.
+
+    Returns the list[dict] of crops (see ProductSegmenter.crop docstring).
+    """
+    segmenter = ProductSegmenter()
+    crops = segmenter.crop(image, detections)
+
+    print(f"[segmentation] Segmented {len(crops)} product candidate(s).")
+
+    if persist_crops:
+        save_crops(crops)
+
+    if display or save_path:
+        visualize_crops(crops, save_path=save_path, show=display)
+
+    return crops
 
