@@ -118,3 +118,40 @@ def segment_products(image, detections, display=False, save_path=None, persist_c
 
     return crops
 
+
+# DEMO / SELF-TEST
+
+if __name__ == "__main__":
+    from detection import detect_products
+
+    demo_image_path = None
+    if os.path.isdir(config.TEST_IMAGES_DIR):
+        candidates = [
+            f for f in os.listdir(config.TEST_IMAGES_DIR)
+            if f.lower().endswith((".png", ".jpg", ".jpeg"))
+        ]
+        if candidates:
+            demo_image_path = os.path.join(config.TEST_IMAGES_DIR, candidates[0])
+
+    if demo_image_path is None:
+        fallback_class = config.CLASS_NAMES[0]  # "BEANS"
+        fallback_dir = os.path.join(config.DATASET_DIR, fallback_class)
+        fallback_file = sorted(os.listdir(fallback_dir))[0]
+        demo_image_path = os.path.join(fallback_dir, fallback_file)
+        print(
+            "[segmentation] No image found in images/. Using a Freiburg "
+            f"dataset sample instead for this demo: {demo_image_path}\n"
+            "[segmentation] Add a real multi-product basket/table photo to "
+            "images/ to test segmentation on its intended input."
+        )
+
+    demo_image = cv2.imread(demo_image_path)
+    if demo_image is None:
+        raise FileNotFoundError(f"Could not read demo image: {demo_image_path}")
+
+    detections, _, _ = detect_products(demo_image, display=False)
+    output_path = os.path.join(config.OUTPUT_DIR, "segmented_crops_demo.png")
+    segment_products(
+        demo_image, detections,
+        display=config.SHOW_PLOTS, save_path=output_path, persist_crops=True,
+    )
