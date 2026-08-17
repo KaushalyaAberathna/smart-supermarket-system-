@@ -74,3 +74,9 @@ def build_model(num_classes=config.NUM_CLASSES, input_shape=config.CLASSIFIER_IM
 
     model = tf.keras.Model(inputs, outputs, name="mobilenetv2_freiburg_groceries")
     return model, base_model
+
+def preprocess_crop(crop_bgr, target_size=config.CLASSIFIER_IMG_SIZE):
+    
+    resized = cv2.resize(crop_bgr, target_size, interpolation=cv2.INTER_AREA)
+    rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
+    return rgb.astype(np.float32)
