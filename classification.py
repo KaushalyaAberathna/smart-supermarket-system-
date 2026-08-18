@@ -80,3 +80,18 @@ def preprocess_crop(crop_bgr, target_size=config.CLASSIFIER_IMG_SIZE):
     resized = cv2.resize(crop_bgr, target_size, interpolation=cv2.INTER_AREA)
     rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
     return rgb.astype(np.float32)
+
+def load_class_names(class_index_path=config.CLASS_INDEX_PATH):
+    """Rebuild the ordered class-name list a trained model's output indices
+    correspond to. train_model.py saves this mapping after training so
+    inference/evaluation is never at risk of silently mis-mapping
+    predictions if config.CLASS_NAMES were ever edited after training.
+    Shared by ProductClassifier (inference) and evaluate.py (test-set scoring).
+    """
+    if os.path.exists(class_index_path):
+        with open(class_index_path, "r") as f:
+            index_to_class = json.load(f)
+        return [index_to_class[str(i)] for i in range(len(index_to_class))]
+    # Fallback (no saved mapping yet): config.CLASS_NAMES is already
+    # alphabetically sorted, matching Keras' directory-based label order.
+    return config.CLASS_NAMES
