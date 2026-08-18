@@ -52,3 +52,9 @@ SmartSupermarket/
   main.py                 CLI: runs the full pipeline over images/
   requirements.txt
 ```
+## 1. Installation
+
+Requires Python 3.10+ (tested on 3.13). CPU-only is fully supported (no GPU required).
+
+```bash
+pip install -r requirements.txt
