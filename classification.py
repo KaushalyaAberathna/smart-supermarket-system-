@@ -175,3 +175,48 @@ def classify_products_with(classifier, crops):
         print(f"[classification] Product {c['id']}: {c['label']} "
               f"(confidence={c['confidence']:.2f})")
     return crops
+
+# --------------------------------------------------------------------------
+# DEMO / SELF-TEST
+# --------------------------------------------------------------------------
+if __name__ == "__main__":
+    if not os.path.exists(config.MODEL_PATH):
+        # No trained model yet (train_model.py hasn't been run) -- still
+        # verify the architecture itself builds and compiles correctly so
+        # this module is meaningfully testable before training exists.
+        print(
+            f"[classification] No trained model found at {config.MODEL_PATH}.\n"
+            "[classification] Run train_model.py first for real predictions. "
+            "Building the architecture now just to verify it constructs correctly:\n"
+        )
+        model, base_model = build_model()
+        model.summary()
+        trainable_base_layers = sum(1 for l in base_model.layers if l.trainable)
+        print(
+            f"\n[classification] MobileNetV2 base has {len(base_model.layers)} layers "
+            f"({trainable_base_layers} currently trainable -- Phase 1 = base frozen)."
+        )
+    else:
+        from detection import detect_products
+        from segmentation import segment_products
+
+        demo_image_path = None
+        if os.path.isdir(config.TEST_IMAGES_DIR):
+            candidates = [
+                f for f in os.listdir(config.TEST_IMAGES_DIR)
+                if f.lower().endswith((".png", ".jpg", ".jpeg"))
+            ]
+            if candidates:
+                demo_image_path = os.path.join(config.TEST_IMAGES_DIR, candidates[0])
+
+        if demo_image_path is None:
+            fallback_class = config.CLASS_NAMES[0]
+            fallback_dir = os.path.join(config.DATASET_DIR, fallback_class)
+            fallback_file = sorted(os.listdir(fallback_dir))[0]
+            demo_image_path = os.path.join(fallback_dir, fallback_file)
+            print(f"[classification] No image in images/. Using fallback: {demo_image_path}")
+
+        demo_image = cv2.imread(demo_image_path)
+        detections, _, _ = detect_products(demo_image, display=False)
+        crops = segment_products(demo_image, detections, display=False)
+        classify_products(crops)
