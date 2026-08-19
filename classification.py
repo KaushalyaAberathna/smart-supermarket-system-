@@ -95,3 +95,42 @@ def load_class_names(class_index_path=config.CLASS_INDEX_PATH):
     # Fallback (no saved mapping yet): config.CLASS_NAMES is already
     # alphabetically sorted, matching Keras' directory-based label order.
     return config.CLASS_NAMES
+
+
+class ProductClassifier:
+    """Loads a trained model once and classifies product crops with it."""
+
+    def __init__(
+        self,
+        model_path=config.MODEL_PATH,
+        class_index_path=config.CLASS_INDEX_PATH,
+        confidence_threshold=config.CLASSIFICATION_CONFIDENCE_THRESHOLD,
+    ):
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(
+                f"No trained model found at '{model_path}'.\n"
+                "Run train_model.py first to fine-tune MobileNetV2 on the "
+                "Freiburg Groceries dataset -- classification.py only "
+                "performs inference with an already-trained model."
+            )
+        self.model = tf.keras.models.load_model(model_path)
+        self.confidence_threshold = confidence_threshold
+        self.class_names = load_class_names(class_index_path)
+
+
+        def predict(self, crop_bgr):
+                """Classify one crop. Returns (label, confidence).
+        
+                If the top prediction's confidence is below
+                config.CLASSIFICATION_CONFIDENCE_THRESHOLD, the label is "Unknown"
+                rather than a low-confidence guess -- better to flag uncertainty
+                than to mislabel a product in a checkout-style report.
+                """
+                x = preprocess_crop(crop_bgr)
+                x = np.expand_dims(x, axis=0)
+                probs = self.model.predict(x, verbose=0)[0]
+        
+                idx = int(np.argmax(probs))
+                confidence = float(probs[idx])
+                label = self.class_names[idx] if confidence >= self.confidence_threshold else "Unknown"
+                return label, confidence
