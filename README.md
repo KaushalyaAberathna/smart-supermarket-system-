@@ -58,3 +58,25 @@ Requires Python 3.10+ (tested on 3.13). CPU-only is fully supported (no GPU requ
 
 ```bash
 pip install -r requirements.txt
+
+
+## 2. Dataset Preparation
+
+Training uses the **Freiburg Groceries dataset**, already organized at
+`dataset/freiburg_groceries/<CLASS_NAME>/*.png`, one folder per class, for
+all 25 classes listed in `config.CLASS_NAMES`:
+
+```
+BEANS, CAKE, CANDY, CEREAL, CHIPS, CHOCOLATE, COFFEE, CORN, FISH, FLOUR,
+HONEY, JAM, JUICE, MILK, NUTS, OIL, PASTA, RICE, SODA, SPICES, SUGAR, TEA,
+TOMATO_SAUCE, VINEGAR, WATER
+```
+
+Class sizes are naturally imbalanced (97-372 images/class); `train_model.py`
+handles this itself (stratified split + train-only oversampling of
+under-represented classes) -- no manual rebalancing needed.
+
+You don't need to do anything here if `dataset/freiburg_groceries/` is
+already populated, as it is in this repo. To retrain on a different/extended
+dataset, keep the same folder-per-class layout and update
+`config.CLASS_NAMES` and `category_mapping.CATEGORY_MAP` to match.
