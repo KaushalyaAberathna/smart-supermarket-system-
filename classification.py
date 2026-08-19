@@ -152,3 +152,26 @@ class ProductClassifier:
             c["label"] = label
             c["confidence"] = confidence
         return crops    
+
+
+# --------------------------------------------------------------------------
+# CONVENIENCE FUNCTION
+# --------------------------------------------------------------------------
+
+def classify_products(crops, model_path=config.MODEL_PATH):
+    """Classify every crop, printing a short summary. Returns the same list
+    with "label" and "confidence" added.
+    """
+    classifier = ProductClassifier(model_path=model_path)
+    classify_products_with(classifier, crops)
+    return crops
+
+def classify_products_with(classifier, crops):
+    """Same as classify_products but reuses an already-loaded classifier --
+    avoids reloading the model from disk for every image in a batch run.
+    """
+    classifier.predict_batch(crops)
+    for c in crops:
+        print(f"[classification] Product {c['id']}: {c['label']} "
+              f"(confidence={c['confidence']:.2f})")
+    return crops
