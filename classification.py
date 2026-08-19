@@ -118,19 +118,37 @@ class ProductClassifier:
         self.class_names = load_class_names(class_index_path)
 
 
-        def predict(self, crop_bgr):
-                """Classify one crop. Returns (label, confidence).
-        
-                If the top prediction's confidence is below
-                config.CLASSIFICATION_CONFIDENCE_THRESHOLD, the label is "Unknown"
-                rather than a low-confidence guess -- better to flag uncertainty
-                than to mislabel a product in a checkout-style report.
-                """
-                x = preprocess_crop(crop_bgr)
-                x = np.expand_dims(x, axis=0)
-                probs = self.model.predict(x, verbose=0)[0]
-        
-                idx = int(np.argmax(probs))
-                confidence = float(probs[idx])
-                label = self.class_names[idx] if confidence >= self.confidence_threshold else "Unknown"
-                return label, confidence
+    def predict(self, crop_bgr):
+        """Classify one crop. Returns (label, confidence).
+
+        If the top prediction's confidence is below
+        config.CLASSIFICATION_CONFIDENCE_THRESHOLD, the label is "Unknown"
+        rather than a low-confidence guess -- better to flag uncertainty
+        than to mislabel a product in a checkout-style report.
+        """
+        x = preprocess_crop(crop_bgr)
+        x = np.expand_dims(x, axis=0)
+        probs = self.model.predict(x, verbose=0)[0]
+
+        idx = int(np.argmax(probs))
+        confidence = float(probs[idx])
+        label = self.class_names[idx] if confidence >= self.confidence_threshold else "Unknown"
+        return label, confidence
+
+    def predict_batch(self, crops):
+        """Classify every crop produced by segmentation.py in place.
+
+        Parameters
+        ----------
+        crops : list[dict] -- each must have a "crop" key (BGR image), as
+            produced by segment_products() / ProductSegmenter.crop().
+
+        Returns
+        -------
+        The same list, with "label" and "confidence" keys added to each dict.
+        """
+        for c in crops:
+            label, confidence = self.predict(c["crop"])
+            c["label"] = label
+            c["confidence"] = confidence
+        return crops    
