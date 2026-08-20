@@ -80,3 +80,26 @@ You don't need to do anything here if `dataset/freiburg_groceries/` is
 already populated, as it is in this repo. To retrain on a different/extended
 dataset, keep the same folder-per-class layout and update
 `config.CLASS_NAMES` and `category_mapping.CATEGORY_MAP` to match.
+
+
+## 3. Training
+
+```bash
+python train_model.py
+```
+
+This is a **one-time** step (per the project brief, "training must be
+performed only once" -- prediction code paths never call it). It will:
+
+1. Build a deterministic, stratified 70/15/15 train/val/test split
+   (`dataset/splits/*.csv`).
+2. Train a MobileNetV2 transfer-learning model in two phases:
+   - Phase 1: backbone frozen, train only the new classification head.
+   - Phase 2: unfreeze the top backbone layers and fine-tune at a low,
+     plateau-adaptive learning rate.
+3. Save the trained model to `models/mobilenetv2_freiburg.keras` and the
+   label index mapping to `models/class_indices.json`.
+4. Save training curves to `output/training_history.png`.
+
+On CPU this typically takes on the order of an hour (longer if early
+stopping doesn't trigger early). Progress bars are shown per epoch.
