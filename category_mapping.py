@@ -90,3 +90,20 @@ def _validate_mapping():
 
 _validate_mapping()
 
+
+def get_category(product_label):
+    """Map a single classifier label (e.g. "MILK") to its supermarket
+    category (e.g. "Dairy"). Unrecognised/"Unknown" labels map to
+    UNKNOWN_CATEGORY rather than raising, since low-confidence predictions
+    are an expected runtime occurrence, not a programming error.
+    """
+    return CATEGORY_MAP.get(product_label, UNKNOWN_CATEGORY)
+
+
+def map_products(crops):
+    """Add a "category" key to every crop dict (which must already have a
+    "label" key from classification.py). Returns the same list.
+    """
+    for c in crops:
+        c["category"] = get_category(c.get("label", UNKNOWN_CATEGORY))
+    return crops
