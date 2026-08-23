@@ -66,3 +66,8 @@ CATEGORY_MAP = {
     # Protein
     "FISH": "Protein",
 }
+
+CATEGORY_NAMES = sorted(set(CATEGORY_MAP.values()))
+
+UNKNOWN_CATEGORY = "Unknown"  # for classifier labels below the confidence threshold
+
