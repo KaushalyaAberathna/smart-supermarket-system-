@@ -22,3 +22,5 @@ meaningful on real data.
 The mapping is a single dictionary so it is trivial to maintain: adding a
 new product class only requires adding one line here.
 """
+
+import config
