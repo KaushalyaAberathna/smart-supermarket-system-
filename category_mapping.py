@@ -24,3 +24,45 @@ new product class only requires adding one line here.
 """
 
 import config
+
+
+# Freiburg class label -> supermarket category. Every class in
+# config.CLASS_NAMES MUST appear here exactly once (enforced below).
+CATEGORY_MAP = {
+    # Bakery & Grains
+    "CAKE": "Bakery & Grains",
+    "CEREAL": "Bakery & Grains",
+    "CORN": "Bakery & Grains",
+    "FLOUR": "Bakery & Grains",
+    "PASTA": "Bakery & Grains",
+    "RICE": "Bakery & Grains",
+
+    # Pantry & Condiments
+    "BEANS": "Pantry & Condiments",
+    "HONEY": "Pantry & Condiments",
+    "JAM": "Pantry & Condiments",
+    "OIL": "Pantry & Condiments",
+    "SPICES": "Pantry & Condiments",
+    "SUGAR": "Pantry & Condiments",
+    "TOMATO_SAUCE": "Pantry & Condiments",
+    "VINEGAR": "Pantry & Condiments",
+
+    # Dairy
+    "MILK": "Dairy",
+
+    # Beverages
+    "COFFEE": "Beverages",
+    "JUICE": "Beverages",
+    "SODA": "Beverages",
+    "TEA": "Beverages",
+    "WATER": "Beverages",
+
+    # Snacks & Sweets
+    "CANDY": "Snacks & Sweets",
+    "CHIPS": "Snacks & Sweets",
+    "CHOCOLATE": "Snacks & Sweets",
+    "NUTS": "Snacks & Sweets",
+
+    # Protein
+    "FISH": "Protein",
+}
