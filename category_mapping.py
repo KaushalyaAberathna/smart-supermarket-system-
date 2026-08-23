@@ -107,3 +107,24 @@ def map_products(crops):
     for c in crops:
         c["category"] = get_category(c.get("label", UNKNOWN_CATEGORY))
     return crops
+
+
+# --------------------------------------------------------------------------
+# DEMO / SELF-TEST
+# --------------------------------------------------------------------------
+if __name__ == "__main__":
+    print(f"[category_mapping] {len(CATEGORY_MAP)} classes mapped into "
+          f"{len(CATEGORY_NAMES)} categories:\n")
+    for category in CATEGORY_NAMES:
+        members = sorted(k for k, v in CATEGORY_MAP.items() if v == category)
+        print(f"  {category}: {members}")
+
+    # Simulate a few classified crops to show map_products() in action.
+    fake_crops = [
+        {"id": 1, "label": "MILK", "confidence": 0.92},
+        {"id": 2, "label": "CANDY", "confidence": 0.81},
+        {"id": 3, "label": "Unknown", "confidence": 0.31},
+    ]
+    print("\n[category_mapping] Example:")
+    for c in map_products(fake_crops):
+        print(f"  Product {c['id']}: {c['label']} -> {c['category']}")
