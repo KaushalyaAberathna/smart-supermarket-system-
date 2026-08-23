@@ -71,3 +71,22 @@ CATEGORY_NAMES = sorted(set(CATEGORY_MAP.values()))
 
 UNKNOWN_CATEGORY = "Unknown"  # for classifier labels below the confidence threshold
 
+
+def _validate_mapping():
+    """Fail fast at import time if CATEGORY_MAP and config.CLASS_NAMES ever
+    drift out of sync (e.g. someone adds a new class folder to the dataset
+    but forgets to map it here). Cheaper to catch this now than to silently
+    lose products into a mis-count downstream.
+    """
+    mapped = set(CATEGORY_MAP.keys())
+    expected = set(config.CLASS_NAMES)
+    missing = expected - mapped
+    extra = mapped - expected
+    if missing:
+        raise ValueError(f"category_mapping.py: no category mapping for classes: {sorted(missing)}")
+    if extra:
+        raise ValueError(f"category_mapping.py: mapping references unknown classes: {sorted(extra)}")
+
+
+_validate_mapping()
+
