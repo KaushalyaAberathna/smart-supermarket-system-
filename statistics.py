@@ -76,3 +76,43 @@ def analyze_products(crops):
     """
     analyzer = StatisticsAnalyzer(crops)
     return analyzer.summary()
+
+
+# --------------------------------------------------------------------------
+# DEMO / SELF-TEST
+# --------------------------------------------------------------------------
+if __name__ == "__main__":
+    # A trained model doesn't exist yet (train_model.py hasn't been built),
+    # so this demo uses hand-built fake crops -- already carrying "label"
+    # and "category" keys, as classification.py + category_mapping.py would
+    # produce -- purely to prove the counting/percentage math is correct.
+    fake_crops = [
+        {"id": 1, "label": "MILK", "category": "Dairy"},
+        {"id": 2, "label": "CANDY", "category": "Snacks & Sweets"},
+        {"id": 3, "label": "CHOCOLATE", "category": "Snacks & Sweets"},
+        {"id": 4, "label": "WATER", "category": "Beverages"},
+        {"id": 5, "label": "TEA", "category": "Beverages"},
+        {"id": 6, "label": "COFFEE", "category": "Beverages"},
+        {"id": 7, "label": "RICE", "category": "Bakery & Grains"},
+        {"id": 8, "label": "Unknown", "category": "Unknown"},
+    ]
+
+    stats = analyze_products(fake_crops)
+
+    print(f"[statistics] Total Products: {stats['total_products']}\n")
+
+    print("[statistics] Category-wise counts:")
+    for cat, count in stats["category_counts"].items():
+        print(f"  {cat:22s}: {count}")
+
+    print("\n[statistics] Category-wise percentages:")
+    for cat, pct in stats["category_percentages"].items():
+        print(f"  {cat:22s}: {pct:.1f}%")
+
+    # Sanity check: percentages must sum to 100% (within float rounding).
+    pct_sum = sum(stats["category_percentages"].values())
+    print(f"\n[statistics] Percentages sum to {pct_sum:.2f}% (expected 100.00%).")
+
+    print("\n[statistics] Per-label counts:")
+    for label, count in stats["label_counts"].items():
+        print(f"  {label:15s}: {count}")
