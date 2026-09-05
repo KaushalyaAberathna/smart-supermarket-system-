@@ -68,4 +68,11 @@ class StatisticsAnalyzer:
             "label_counts": self.label_counts,
         }
 
-    
+
+def analyze_products(crops):
+    """Convenience function matching the naming pattern of the other
+    pipeline stages (detect_products, segment_products, classify_products,
+    map_products). Returns the summary dict from StatisticsAnalyzer.
+    """
+    analyzer = StatisticsAnalyzer(crops)
+    return analyzer.summary()
