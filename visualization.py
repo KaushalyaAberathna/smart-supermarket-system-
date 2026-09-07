@@ -31,3 +31,6 @@ def _hex_to_bgr(hex_color):
     hex_color = hex_color.lstrip("#")
     r, g, b = (int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
     return (b, g, r)
+
+def _category_color_hex(category):
+    return CATEGORY_COLORS_HEX.get(category, UNKNOWN_COLOR_HEX)
