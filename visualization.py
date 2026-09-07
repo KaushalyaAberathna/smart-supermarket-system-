@@ -24,3 +24,10 @@ CATEGORY_COLORS_HEX = {
     "Snacks & Sweets":     "#eb6834",  # orange
 }
 UNKNOWN_COLOR_HEX = "#898781"  # neutral gray -- not a real category, so no categorical hue
+
+
+def _hex_to_bgr(hex_color):
+    """Convert '#rrggbb' to an OpenCV-style (B, G, R) integer tuple."""
+    hex_color = hex_color.lstrip("#")
+    r, g, b = (int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
+    return (b, g, r)
