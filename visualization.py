@@ -42,3 +42,51 @@ def _readable_text_color(bgr_color):
     b, g, r = bgr_color
     luminance = 0.299 * r + 0.587 * g + 0.114 * b
     return (0, 0, 0) if luminance > 140 else (255, 255, 255)
+
+
+# --------------------------------------------------------------------------
+# FINAL ANNOTATED IMAGE
+# --------------------------------------------------------------------------
+def draw_final_annotations(image, crops):
+    """Draw a bounding box plus a two-line label chip (product label on top,
+    category below) for every classified+mapped crop, e.g.:
+
+        +----------------------+
+        | MILK                 |
+        | Dairy                |
+        +----------------------+
+
+    The chip is filled with the product's category color, so categories are
+    visually distinguishable at a glance without reading text.
+    """
+    annotated = image.copy()
+    font = getattr(cv2, config.LABEL_FONT)
+
+    for c in crops:
+        x, y, w, h = c["bbox"]
+        category = c.get("category", category_mapping.UNKNOWN_CATEGORY)
+        color_bgr = _hex_to_bgr(_category_color_hex(category))
+        text_color = _readable_text_color(color_bgr)
+
+        cv2.rectangle(annotated, (x, y), (x + w, y + h), color_bgr, config.BOUNDING_BOX_THICKNESS)
+
+        line1 = str(c.get("label", "Unknown"))
+        line2 = str(category)
+        (w1, h1), base1 = cv2.getTextSize(line1, font, config.LABEL_FONT_SCALE, config.LABEL_THICKNESS)
+        (w2, h2), base2 = cv2.getTextSize(line2, font, config.LABEL_FONT_SCALE, config.LABEL_THICKNESS)
+
+        chip_w = max(w1, w2) + 10
+        chip_h = h1 + h2 + base1 + base2 + 10
+        chip_top = max(0, y - chip_h)
+
+        cv2.rectangle(annotated, (x, chip_top), (x + chip_w, y), color_bgr, -1)
+        cv2.putText(
+            annotated, line1, (x + 5, chip_top + h1 + 4), font,
+            config.LABEL_FONT_SCALE, text_color, config.LABEL_THICKNESS, cv2.LINE_AA,
+        )
+        cv2.putText(
+            annotated, line2, (x + 5, chip_top + h1 + h2 + base1 + 6), font,
+            config.LABEL_FONT_SCALE, text_color, config.LABEL_THICKNESS, cv2.LINE_AA,
+        )
+
+    return annotated
