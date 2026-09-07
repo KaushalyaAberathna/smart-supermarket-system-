@@ -90,3 +90,21 @@ def draw_final_annotations(image, crops):
         )
 
     return annotated
+
+
+def show_final_image(annotated_image, save_path=None, show=config.SHOW_PLOTS):
+    fig = plt.figure(figsize=(10, 8))
+    plt.imshow(cv2.cvtColor(annotated_image, cv2.COLOR_BGR2RGB))
+    plt.title("Smart Checkout -- Final Detection Result")
+    plt.axis("off")
+    plt.tight_layout()
+
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        print(f"[visualization] Saved final annotated image to: {save_path}")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
