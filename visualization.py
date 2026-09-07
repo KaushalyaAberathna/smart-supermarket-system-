@@ -34,3 +34,11 @@ def _hex_to_bgr(hex_color):
 
 def _category_color_hex(category):
     return CATEGORY_COLORS_HEX.get(category, UNKNOWN_COLOR_HEX)
+
+def _readable_text_color(bgr_color):
+    """Pick black or white text for readability against a given BGR
+    background, using standard relative-luminance weighting.
+    """
+    b, g, r = bgr_color
+    luminance = 0.299 * r + 0.587 * g + 0.114 * b
+    return (0, 0, 0) if luminance > 140 else (255, 255, 255)
