@@ -108,3 +108,40 @@ def show_final_image(annotated_image, save_path=None, show=config.SHOW_PLOTS):
         plt.show()
     else:
         plt.close(fig)
+
+
+# --------------------------------------------------------------------------
+# CONSOLE REPORT
+# --------------------------------------------------------------------------
+def print_console_report(stats):
+    """Print the "SMART CHECKOUT REPORT" console summary.
+
+    All 6 real categories are always listed (even at 0), matching
+    statistics.py's zero-filled counts, so the report is consistent across
+    runs. "Unknown" (low-confidence classifications) is only shown if it
+    actually occurred this run -- it isn't a real product category.
+    """
+    total = stats["total_products"]
+    counts = stats["category_counts"]
+    percentages = stats["category_percentages"]
+
+    categories = list(category_mapping.CATEGORY_NAMES)
+    if counts.get(category_mapping.UNKNOWN_CATEGORY, 0) > 0:
+        categories.append(category_mapping.UNKNOWN_CATEGORY)
+
+    name_width = max(len(c) for c in categories) + 2
+
+    print("=" * 28)
+    print("SMART CHECKOUT REPORT")
+    print("=" * 28)
+    print(f"Total Products : {total}\n")
+
+    for cat in categories:
+        print(f"{cat:<{name_width}}: {counts.get(cat, 0)}")
+
+    print("\nDistribution")
+    for cat in categories:
+        pct = percentages.get(cat, 0.0)
+        print(f"{cat:<{name_width}}{round(pct)}%")
+
+    print("=" * 28)
