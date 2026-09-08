@@ -110,9 +110,9 @@ def show_final_image(annotated_image, save_path=None, show=config.SHOW_PLOTS):
         plt.close(fig)
 
 
-# --------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # CONSOLE REPORT
-# --------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 def print_console_report(stats):
     """Print the "SMART CHECKOUT REPORT" console summary.
 
