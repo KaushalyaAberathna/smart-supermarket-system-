@@ -195,3 +195,46 @@ def plot_bar_chart(stats, save_path=None, show=config.SHOW_PLOTS):
         plt.close(fig)
 
     return fig
+
+
+def plot_pie_chart(stats, save_path=None, show=config.SHOW_PLOTS):
+    """Pie chart of category distribution. Zero-count categories are
+    excluded (an invisible 0% wedge would only clutter the legend); a
+    legend is included since pie slices have no axis to label identity by.
+    """
+    categories = [
+        c for c in list(category_mapping.CATEGORY_NAMES) + [category_mapping.UNKNOWN_CATEGORY]
+        if stats["category_counts"].get(c, 0) > 0
+    ]
+    counts = [stats["category_counts"][c] for c in categories]
+    colors = [_category_color_hex(c) for c in categories]
+
+    if not counts:
+        print("[visualization] No products detected -- skipping pie chart.")
+        return
+
+    fig, ax = plt.subplots(figsize=(7, 7))
+    wedges, _, autotexts = ax.pie(
+        counts, colors=colors, autopct="%1.0f%%", pctdistance=0.75,
+        startangle=90, wedgeprops={"edgecolor": "#fcfcfb", "linewidth": 2},
+    )
+    for t in autotexts:
+        t.set_color("#0b0b0b")
+        t.set_fontsize(10)
+
+    ax.set_title("Category Distribution", fontsize=13, color="#0b0b0b")
+    ax.legend(wedges, categories, loc="center left", bbox_to_anchor=(1, 0.5), frameon=False)
+    ax.axis("equal")
+    plt.tight_layout()
+
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        print(f"[visualization] Saved pie chart to: {save_path}")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+    return fig
