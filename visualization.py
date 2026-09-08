@@ -145,4 +145,53 @@ def print_console_report(stats):
         print(f"{cat:<{name_width}}{round(pct)}%")
 
     print("=" * 28)
-#end of file
+
+# --------------------------------------------------------------------------
+# GRAPHS
+# --------------------------------------------------------------------------
+def plot_bar_chart(stats, save_path=None, show=config.SHOW_PLOTS):
+    """Bar chart of product count per category. Every category is shown
+    (including zero-count ones) so the chart's category set is stable
+    across runs; each bar is colored by its category and value-labeled
+    directly above it (selective direct labeling, no separate legend needed
+    since the x-axis already names each category).
+    """
+    categories = list(category_mapping.CATEGORY_NAMES)
+    if stats["category_counts"].get(category_mapping.UNKNOWN_CATEGORY, 0) > 0:
+        categories.append(category_mapping.UNKNOWN_CATEGORY)
+    counts = [stats["category_counts"].get(c, 0) for c in categories]
+    colors = [_category_color_hex(c) for c in categories]
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    bars = ax.bar(categories, counts, color=colors, width=0.6)
+
+    for bar, count in zip(bars, counts):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2, bar.get_height() + max(counts) * 0.02,
+            str(count), ha="center", va="bottom", fontsize=10, color="#0b0b0b",
+        )
+
+    ax.set_title("Product Count by Category", fontsize=13, color="#0b0b0b")
+    ax.set_ylabel("Count", color="#52514e")
+    ax.set_ylim(0, max(counts) * 1.15 if max(counts) > 0 else 1)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_color("#c3c2b7")
+    ax.spines["bottom"].set_color("#c3c2b7")
+    ax.tick_params(colors="#52514e")
+    ax.yaxis.grid(True, color="#e1e0d9", linewidth=1)
+    ax.set_axisbelow(True)
+    plt.xticks(rotation=20, ha="right")
+    plt.tight_layout()
+
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        print(f"[visualization] Saved bar chart to: {save_path}")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+    return fig
