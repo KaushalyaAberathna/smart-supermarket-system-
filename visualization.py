@@ -145,3 +145,4 @@ def print_console_report(stats):
         print(f"{cat:<{name_width}}{round(pct)}%")
 
     print("=" * 28)
+#end of file
