@@ -238,3 +238,21 @@ def plot_pie_chart(stats, save_path=None, show=config.SHOW_PLOTS):
         plt.close(fig)
 
     return fig
+
+# --------------------------------------------------------------------------
+# ORCHESTRATION
+# --------------------------------------------------------------------------
+def visualize_final_output(image, crops, stats, output_dir=config.OUTPUT_DIR, display=config.SHOW_PLOTS):
+    """Run every visualization step and save all four artifacts to
+    output_dir: final_annotated.png, bar_chart.png, pie_chart.png, plus the
+    console report printed to stdout.
+    """
+    annotated = draw_final_annotations(image, crops)
+    show_final_image(annotated, save_path=os.path.join(output_dir, "final_annotated.png"), show=display)
+
+    print_console_report(stats)
+
+    plot_bar_chart(stats, save_path=os.path.join(output_dir, "bar_chart.png"), show=display)
+    plot_pie_chart(stats, save_path=os.path.join(output_dir, "pie_chart.png"), show=display)
+
+    return annotated
