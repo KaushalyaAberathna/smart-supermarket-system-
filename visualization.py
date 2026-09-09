@@ -256,3 +256,51 @@ def visualize_final_output(image, crops, stats, output_dir=config.OUTPUT_DIR, di
     plot_pie_chart(stats, save_path=os.path.join(output_dir, "pie_chart.png"), show=display)
 
     return annotated
+
+
+# --------------------------------------------------------------------------
+# DEMO / SELF-TEST
+# --------------------------------------------------------------------------
+if __name__ == "__main__":
+    import itertools
+    from detection import detect_products
+    from segmentation import segment_products
+    from statistics import analyze_products
+
+    demo_image_path = None
+    if os.path.isdir(config.TEST_IMAGES_DIR):
+        candidates = [
+            f for f in os.listdir(config.TEST_IMAGES_DIR)
+            if f.lower().endswith((".png", ".jpg", ".jpeg"))
+        ]
+        if candidates:
+            demo_image_path = os.path.join(config.TEST_IMAGES_DIR, candidates[0])
+
+    if demo_image_path is None:
+        fallback_class = config.CLASS_NAMES[0]
+        fallback_dir = os.path.join(config.DATASET_DIR, fallback_class)
+        fallback_file = sorted(os.listdir(fallback_dir))[0]
+        demo_image_path = os.path.join(fallback_dir, fallback_file)
+        print(f"[visualization] No image in images/. Using fallback: {demo_image_path}")
+
+    demo_image = cv2.imread(demo_image_path)
+    detections, _, _ = detect_products(demo_image, display=False)
+    crops = segment_products(demo_image, detections, display=False)
+
+    # train_model.py hasn't been run yet, so there is no trained classifier
+    # to call here. To still exercise this module end-to-end today, cycle
+    # through known class names as PLACEHOLDER labels -- category_mapping
+    # then computes real categories from those fake labels, and every chart
+    # /report/annotation below is genuinely computed from that data. This is
+    # clearly not a real prediction; swap in classify_products() once a
+    # trained model exists.
+    print("[visualization] NOTE: no trained model yet -- using placeholder "
+          "cycling labels (not real predictions) to demo this module.\n")
+    label_cycle = itertools.cycle(config.CLASS_NAMES)
+    for c in crops:
+        c["label"] = next(label_cycle)
+        c["confidence"] = 0.99
+        c["category"] = category_mapping.get_category(c["label"])
+
+    stats = analyze_products(crops)
+    visualize_final_output(demo_image, crops, stats, display=config.SHOW_PLOTS)
