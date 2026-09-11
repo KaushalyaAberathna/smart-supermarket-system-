@@ -111,3 +111,41 @@ def build_dataset_split():
         f"(total {sum(len(v) for v in splits.values())})"
     )
     return splits
+
+def _oversample_minority_classes(train_pairs, rng):
+    """Top up classes below the mean train-set size up to that mean, by
+    duplicating (path, class_name) rows sampled with replacement. See
+    build_dataset_split's docstring for why this is preferred over
+    class_weight-based loss reweighting.
+    """
+    by_class = {}
+    for pair in train_pairs:
+        by_class.setdefault(pair[1], []).append(pair)
+
+    mean_count = sum(len(v) for v in by_class.values()) / len(by_class)
+    target = int(round(mean_count))
+
+    topped_up = list(train_pairs)
+    for pairs in by_class.values():
+        deficit = target - len(pairs)
+        if deficit > 0:
+            topped_up += [rng.choice(pairs) for _ in range(deficit)]
+
+    return topped_up
+
+
+def _write_split_csv(pairs, path):
+    with open(path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["filepath", "label"])
+        writer.writerows(pairs)
+
+
+def load_split_csv(path):
+    """Read a split CSV written by build_dataset_split(). Used by
+    evaluate.py to load the exact same test split used here.
+    """
+    with open(path, "r", newline="") as f:
+        reader = csv.reader(f)
+        next(reader)  # header
+        return [(row[0], row[1]) for row in reader]
