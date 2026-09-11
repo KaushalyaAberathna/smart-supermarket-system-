@@ -121,3 +121,50 @@ def print_metrics_summary(metrics):
 
     print("\nPer-class report:")
     print(metrics["classification_report"])
+
+
+def plot_confusion_matrix(cm, class_names, save_path=None, show=config.SHOW_PLOTS, normalize=True):
+    """Plot the confusion matrix as a heatmap.
+
+    Row-normalized by default (each row sums to 1 = that true class's
+    predictions, so the diagonal reads directly as per-class recall). With
+    25 classes, per-cell numeric annotations would be unreadable clutter, so
+    magnitude is conveyed by color alone here; exact counts are saved
+    separately as a CSV for anyone who needs precise numbers (see
+    save_confusion_matrix_csv).
+    """
+    if normalize:
+        row_sums = cm.sum(axis=1, keepdims=True)
+        cm_display = np.divide(
+            cm, row_sums, out=np.zeros_like(cm, dtype=float), where=row_sums != 0
+        )
+        title = "Confusion Matrix (row-normalized -- diagonal = per-class recall)"
+        vmax = 1.0
+    else:
+        cm_display = cm
+        title = "Confusion Matrix (counts)"
+        vmax = cm.max()
+
+    cmap = LinearSegmentedColormap.from_list("sequential_blue", _SEQUENTIAL_BLUE)
+
+    fig, ax = plt.subplots(figsize=(12, 10))
+    im = ax.imshow(cm_display, cmap=cmap, vmin=0, vmax=vmax)
+    ax.set_xticks(range(len(class_names)))
+    ax.set_yticks(range(len(class_names)))
+    ax.set_xticklabels(class_names, rotation=90, fontsize=8)
+    ax.set_yticklabels(class_names, fontsize=8)
+    ax.set_xlabel("Predicted label", color="#52514e")
+    ax.set_ylabel("True label", color="#52514e")
+    ax.set_title(title, fontsize=12, color="#0b0b0b")
+    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    plt.tight_layout()
+
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        print(f"[evaluate] Saved confusion matrix heatmap to: {save_path}")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
