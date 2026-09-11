@@ -213,3 +213,30 @@ def save_report_text(metrics, save_path):
         f.write("\nPer-class report:\n")
         f.write(metrics["classification_report"])
     print(f"[evaluate] Saved evaluation report to: {save_path}")
+
+
+# --------------------------------------------------------------------------
+# ORCHESTRATION
+# --------------------------------------------------------------------------
+def evaluate():
+    y_true, y_pred, class_names = load_test_predictions()
+    metrics = compute_metrics(y_true, y_pred, class_names)
+
+    print_metrics_summary(metrics)
+
+    plot_confusion_matrix(
+        metrics["confusion_matrix"], class_names,
+        save_path=os.path.join(config.OUTPUT_DIR, "confusion_matrix.png"),
+    )
+    save_confusion_matrix_csv(
+        metrics["confusion_matrix"], class_names,
+        save_path=os.path.join(config.OUTPUT_DIR, "confusion_matrix.csv"),
+    )
+    save_metrics_json(metrics, os.path.join(config.OUTPUT_DIR, "evaluation_metrics.json"))
+    save_report_text(metrics, os.path.join(config.OUTPUT_DIR, "evaluation_report.txt"))
+
+    return metrics
+
+
+if __name__ == "__main__":
+    evaluate()
