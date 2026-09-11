@@ -219,3 +219,20 @@ def make_dataset(
 
     ds = ds.prefetch(tf.data.AUTOTUNE)
     return ds
+
+
+def _mixup_batch(images, one_hot_labels, alpha):
+
+    batch_size = tf.shape(images)[0]
+    shuffled_idx = tf.random.shuffle(tf.range(batch_size))
+
+    gamma1 = tf.random.gamma([batch_size], alpha, 1.0)
+    gamma2 = tf.random.gamma([batch_size], alpha, 1.0)
+    lam = gamma1 / (gamma1 + gamma2)
+
+    lam_image = tf.reshape(lam, [batch_size, 1, 1, 1])
+    lam_label = tf.reshape(lam, [batch_size, 1])
+
+    mixed_images = lam_image * images + (1.0 - lam_image) * tf.gather(images, shuffled_idx)
+    mixed_labels = lam_label * one_hot_labels + (1.0 - lam_label) * tf.gather(one_hot_labels, shuffled_idx)
+    return mixed_images, mixed_labels
