@@ -180,3 +180,18 @@ def save_confusion_matrix_csv(cm, class_names, save_path):
         for name, row in zip(class_names, cm):
             f.write(name + "," + ",".join(str(v) for v in row) + "\n")
     print(f"[evaluate] Saved confusion matrix counts to: {save_path}")
+
+
+
+
+def save_metrics_json(metrics, save_path):
+    """Save the scalar metrics (not the confusion matrix / text report) as
+    JSON, so main.py or the report generation can consume them programmatically.
+    """
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    scalar_metrics = {k: v for k, v in metrics.items() if k not in ("classification_report", "confusion_matrix")}
+    scalar_metrics["target_accuracy"] = TARGET_ACCURACY
+    scalar_metrics["target_met"] = metrics["accuracy"] >= TARGET_ACCURACY
+    with open(save_path, "w") as f:
+        json.dump(scalar_metrics, f, indent=2)
+    print(f"[evaluate] Saved evaluation metrics to: {save_path}")
