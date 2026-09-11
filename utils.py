@@ -58,3 +58,35 @@ def list_images_in_directory(directory):
         if f.lower().endswith(SUPPORTED_EXTENSIONS)
     )
     return [os.path.join(directory, f) for f in files]
+
+
+
+# DEMO / SELF-TEST
+
+if __name__ == "__main__":
+    import config
+
+    # Success case: a real Freiburg sample.
+    sample_class = config.CLASS_NAMES[0]
+    sample_dir = os.path.join(config.DATASET_DIR, sample_class)
+    sample_file = sorted(os.listdir(sample_dir))[0]
+    sample_path = os.path.join(sample_dir, sample_file)
+
+    image = load_image(sample_path)
+    print(f"[utils] Loaded valid image OK: {sample_path} -- shape={image.shape}")
+
+    # Failure case 1: nonexistent path.
+    try:
+        load_image("this_path_does_not_exist.jpg")
+    except FileNotFoundError as e:
+        print(f"[utils] Correctly raised FileNotFoundError: {e}")
+
+    # Failure case 2: unsupported extension.
+    try:
+        load_image(os.path.join(config.BASE_DIR, "requirements.txt"))
+    except ValueError as e:
+        print(f"[utils] Correctly raised ValueError: {e}")
+
+    # list_images_in_directory demo.
+    images = list_images_in_directory(sample_dir)
+    print(f"[utils] Found {len(images)} images in {sample_dir} (showing first 3): {images[:3]}")
