@@ -168,3 +168,15 @@ def plot_confusion_matrix(cm, class_names, save_path=None, show=config.SHOW_PLOT
         plt.show()
     else:
         plt.close(fig)
+
+
+def save_confusion_matrix_csv(cm, class_names, save_path):
+    """Save the raw-count confusion matrix as a CSV (class_names header row
+    + row labels), for exact numbers the heatmap intentionally omits.
+    """
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    with open(save_path, "w", newline="") as f:
+        f.write("true_label\\predicted_label," + ",".join(class_names) + "\n")
+        for name, row in zip(class_names, cm):
+            f.write(name + "," + ",".join(str(v) for v in row) + "\n")
+    print(f"[evaluate] Saved confusion matrix counts to: {save_path}")
