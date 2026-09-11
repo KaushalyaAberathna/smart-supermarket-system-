@@ -96,3 +96,28 @@ def compute_metrics(y_true, y_pred, class_names):
         "classification_report": report_text,
         "confusion_matrix": cm,
     }
+
+
+def print_metrics_summary(metrics):
+    print("=" * 40)
+    print("CLASSIFICATION EVALUATION SUMMARY")
+    print("=" * 40)
+    print(f"Accuracy            : {metrics['accuracy'] * 100:.2f}%")
+    print(f"Macro Precision     : {metrics['macro_precision'] * 100:.2f}%")
+    print(f"Macro Recall        : {metrics['macro_recall'] * 100:.2f}%")
+    print(f"Macro F1-score      : {metrics['macro_f1'] * 100:.2f}%")
+    print(f"Weighted Precision  : {metrics['weighted_precision'] * 100:.2f}%")
+    print(f"Weighted Recall     : {metrics['weighted_recall'] * 100:.2f}%")
+    print(f"Weighted F1-score   : {metrics['weighted_f1'] * 100:.2f}%")
+    print("-" * 40)
+
+    if metrics["accuracy"] >= TARGET_ACCURACY:
+        print(f"Target accuracy ({TARGET_ACCURACY * 100:.0f}%) : MET "
+              f"({metrics['accuracy'] * 100:.2f}% >= {TARGET_ACCURACY * 100:.0f}%)")
+    else:
+        print(f"Target accuracy ({TARGET_ACCURACY * 100:.0f}%) : NOT MET "
+              f"({metrics['accuracy'] * 100:.2f}% < {TARGET_ACCURACY * 100:.0f}%)")
+    print("=" * 40)
+
+    print("\nPer-class report:")
+    print(metrics["classification_report"])
