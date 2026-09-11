@@ -1,1 +1,3 @@
 dataset/freiburg_groceries/
+__pycache__/
+output/
