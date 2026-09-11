@@ -236,3 +236,224 @@ def _mixup_batch(images, one_hot_labels, alpha):
     mixed_images = lam_image * images + (1.0 - lam_image) * tf.gather(images, shuffled_idx)
     mixed_labels = lam_label * one_hot_labels + (1.0 - lam_label) * tf.gather(one_hot_labels, shuffled_idx)
     return mixed_images, mixed_labels
+
+
+
+
+# TRAINING
+
+def train(
+    epochs_head=config.CLASSIFIER_EPOCHS_HEAD,
+    epochs_fine_tune=config.CLASSIFIER_EPOCHS_FINE_TUNE,
+    steps_per_epoch=None,
+    validation_steps=None,
+):
+    """Run the full two-phase training procedure and save the trained model.
+
+    epochs_head/epochs_fine_tune/steps_per_epoch/validation_steps default to
+    config values (the real training run) but can be overridden -- mainly so
+    this function can be smoke-tested with a couple of steps/epochs before
+    committing to a full ~20-40 minute CPU run.
+    """
+    tf.random.set_seed(config.RANDOM_SEED)
+    np.random.seed(config.RANDOM_SEED)
+
+    splits = build_dataset_split()
+    class_to_index = {name: i for i, name in enumerate(config.CLASS_NAMES)}
+
+    # Class sizes range from 97 (CORN) to 372 (CANDY) images. "balanced"
+    # class weighting (reweighting each class inversely to its training
+    # frequency) was tried to help small/confused classes like RICE and
+    # VINEGAR, but in practice over-corrected and hurt the largest class
+    # (CANDY recall dropped from 0.79 to 0.45), reducing overall accuracy.
+    # Kept as an option (config.USE_CLASS_WEIGHT) but off by default.
+    class_weight = None
+    if config.USE_CLASS_WEIGHT:
+        train_label_indices = [class_to_index[lbl] for _, lbl in splits["train"]]
+        class_weight_values = compute_class_weight(
+            class_weight="balanced",
+            classes=np.arange(config.NUM_CLASSES),
+            y=train_label_indices,
+        )
+        class_weight = {i: w for i, w in enumerate(class_weight_values)}
+
+    train_ds = make_dataset(
+        splits["train"], class_to_index, config.CLASSIFIER_BATCH_SIZE, config.CLASSIFIER_IMG_SIZE,
+        shuffle=True, augment=config.USE_DATA_AUGMENTATION,
+        one_hot=True, num_classes=config.NUM_CLASSES,
+    )
+    val_ds = make_dataset(
+        splits["val"], class_to_index, config.CLASSIFIER_BATCH_SIZE, config.CLASSIFIER_IMG_SIZE,
+        shuffle=False, augment=False,
+        one_hot=True, num_classes=config.NUM_CLASSES,
+    )
+
+    model, base_model = build_model()
+    os.makedirs(config.MODELS_DIR, exist_ok=True)
+
+    # Label smoothing needs one-hot targets, hence CategoricalCrossentropy
+    # (not the sparse variant) paired with the one_hot=True datasets above.
+    # Softening the targets (e.g. true class -> 0.9 instead of 1.0) discourages
+    # the model from becoming over-confident on a modest-sized, sometimes
+    # visually ambiguous dataset (bottles/bags that look alike across classes).
+    loss_fn = tf.keras.losses.CategoricalCrossentropy(label_smoothing=config.LABEL_SMOOTHING)
+
+    callbacks = [
+        tf.keras.callbacks.ModelCheckpoint(
+            config.MODEL_PATH, monitor="val_accuracy", mode="max",
+            save_best_only=True, verbose=1,
+        ),
+        tf.keras.callbacks.EarlyStopping(
+            monitor="val_accuracy", mode="max",
+            patience=config.CLASSIFIER_EARLY_STOPPING_PATIENCE,
+            restore_best_weights=True,
+        ),
+    ]
+
+    start_time = time.time()
+
+    # ---------------- Phase 1: frozen base, train the new head ----------------
+    print("\n=== Phase 1: training classification head (MobileNetV2 base frozen) ===")
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(config.CLASSIFIER_LEARNING_RATE),
+        loss=loss_fn,
+        metrics=["accuracy"],
+    )
+    history1 = model.fit(
+        train_ds, validation_data=val_ds, epochs=epochs_head,
+        steps_per_epoch=steps_per_epoch, validation_steps=validation_steps,
+        callbacks=callbacks, shuffle=False,  # train_ds is already shuffled by make_dataset()
+        class_weight=class_weight,
+    )
+
+    # ---------------- Phase 2: unfreeze top layers, fine-tune ----------------
+    history2 = None
+    if epochs_fine_tune > 0:
+        print(f"\n=== Phase 2: fine-tuning MobileNetV2 layers from index {config.FINE_TUNE_AT_LAYER} onward ===")
+        base_model.trainable = True
+        for layer in base_model.layers[:config.FINE_TUNE_AT_LAYER]:
+            layer.trainable = False  # keep early (generic) feature layers frozen
+
+        # Recompile is required after changing .trainable flags, and starts
+        # from a low learning rate -- large updates to pretrained weights at
+        # this stage would destroy the useful ImageNet features instead of
+        # gently adapting them to grocery packaging. ReduceLROnPlateau then
+        # halves it further whenever val_accuracy stalls, letting the model
+        # keep making small gains instead of oscillating around a plateau.
+        #
+        # AdamW (not Adam) here specifically: the Dense head's L2/Dropout
+        # only regularize ~32k head parameters -- once this phase unfreezes
+        # dozens of MobileNetV2 layers, THOSE (far more numerous) backbone
+        # weights had no regularization at all under plain Adam, which is
+        # what let an earlier run's train accuracy hit 98%+ while test
+        # accuracy stayed at ~77%. AdamW's decoupled weight decay applies to
+        # every trainable weight in this phase, backbone included.
+        model.compile(
+            optimizer=tf.keras.optimizers.AdamW(
+                learning_rate=config.FINE_TUNE_LEARNING_RATE,
+                weight_decay=config.FINE_TUNE_WEIGHT_DECAY,
+            ),
+            loss=loss_fn,
+            metrics=["accuracy"],
+        )
+        fine_tune_callbacks = callbacks + [
+            tf.keras.callbacks.ReduceLROnPlateau(
+                monitor="val_accuracy", mode="max",
+                factor=0.5, patience=2, min_lr=1e-7, verbose=1,
+            ),
+        ]
+
+        initial_epoch = history1.epoch[-1] + 1
+        total_epochs = initial_epoch + epochs_fine_tune
+        history2 = model.fit(
+            train_ds, validation_data=val_ds, epochs=total_epochs, initial_epoch=initial_epoch,
+            steps_per_epoch=steps_per_epoch, validation_steps=validation_steps,
+            callbacks=fine_tune_callbacks, shuffle=False,  # train_ds is already shuffled by make_dataset()
+            class_weight=class_weight,
+        )
+    else:
+        print("\n[train_model] epochs_fine_tune=0 -- skipping Phase 2.")
+
+    elapsed_minutes = (time.time() - start_time) / 60
+    print(f"\n[train_model] Training finished in {elapsed_minutes:.1f} minutes.")
+
+    # EarlyStopping's restore_best_weights leaves the in-memory model at its
+    # best val_accuracy checkpoint, which may differ from whatever
+    # ModelCheckpoint last wrote to disk mid-training -- save explicitly here
+    # so the persisted file always matches the final in-memory weights.
+    model.save(config.MODEL_PATH)
+    print(f"[train_model] Saved final model to: {config.MODEL_PATH}")
+
+    index_to_class = {str(i): name for i, name in enumerate(config.CLASS_NAMES)}
+    os.makedirs(os.path.dirname(config.CLASS_INDEX_PATH), exist_ok=True)
+    with open(config.CLASS_INDEX_PATH, "w") as f:
+        json.dump(index_to_class, f, indent=2)
+    print(f"[train_model] Saved class index mapping to: {config.CLASS_INDEX_PATH}")
+
+    plot_training_history(
+        history1, history2,
+        save_path=os.path.join(config.OUTPUT_DIR, "training_history.png"),
+    )
+
+    return model, history1, history2
+
+
+
+# TRAINING CURVES
+
+def plot_training_history(history1, history2=None, save_path=None, show=config.SHOW_PLOTS):
+    """Plot accuracy and loss (train vs. val) across both training phases,
+    with a marker at the Phase 1 -> Phase 2 boundary.
+    """
+    acc = list(history1.history["accuracy"])
+    val_acc = list(history1.history["val_accuracy"])
+    loss = list(history1.history["loss"])
+    val_loss = list(history1.history["val_loss"])
+    phase_boundary = len(acc) - 0.5
+
+    if history2 is not None:
+        acc += history2.history["accuracy"]
+        val_acc += history2.history["val_accuracy"]
+        loss += history2.history["loss"]
+        val_loss += history2.history["val_loss"]
+
+    epochs_range = range(1, len(acc) + 1)
+
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+
+    axes[0].plot(epochs_range, acc, label="Train", color="#2a78d6", linewidth=2)
+    axes[0].plot(epochs_range, val_acc, label="Validation", color="#eb6834", linewidth=2)
+    if history2 is not None:
+        axes[0].axvline(phase_boundary, color="#898781", linestyle="--", linewidth=1, label="Fine-tuning starts")
+    axes[0].set_title("Accuracy")
+    axes[0].set_xlabel("Epoch")
+    axes[0].legend(frameon=False)
+    axes[0].spines["top"].set_visible(False)
+    axes[0].spines["right"].set_visible(False)
+
+    axes[1].plot(epochs_range, loss, label="Train", color="#2a78d6", linewidth=2)
+    axes[1].plot(epochs_range, val_loss, label="Validation", color="#eb6834", linewidth=2)
+    if history2 is not None:
+        axes[1].axvline(phase_boundary, color="#898781", linestyle="--", linewidth=1, label="Fine-tuning starts")
+    axes[1].set_title("Loss")
+    axes[1].set_xlabel("Epoch")
+    axes[1].legend(frameon=False)
+    axes[1].spines["top"].set_visible(False)
+    axes[1].spines["right"].set_visible(False)
+
+    plt.tight_layout()
+
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        print(f"[train_model] Saved training curves to: {save_path}")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+
+# ENTRY POINT
+if __name__ == "__main__":
+    train()
