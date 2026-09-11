@@ -65,3 +65,34 @@ def load_test_predictions():
     y_pred = np.argmax(probs, axis=1)
 
     return y_true, y_pred, class_names
+
+
+def compute_metrics(y_true, y_pred, class_names):
+    """Compute accuracy, macro/weighted precision-recall-F1, the full
+    per-class classification report, and the confusion matrix.
+    """
+    accuracy = accuracy_score(y_true, y_pred)
+
+    macro_p, macro_r, macro_f1, _ = precision_recall_fscore_support(
+        y_true, y_pred, average="macro", zero_division=0
+    )
+    weighted_p, weighted_r, weighted_f1, _ = precision_recall_fscore_support(
+        y_true, y_pred, average="weighted", zero_division=0
+    )
+
+    report_text = classification_report(
+        y_true, y_pred, target_names=class_names, zero_division=0
+    )
+    cm = confusion_matrix(y_true, y_pred, labels=range(len(class_names)))
+
+    return {
+        "accuracy": accuracy,
+        "macro_precision": macro_p,
+        "macro_recall": macro_r,
+        "macro_f1": macro_f1,
+        "weighted_precision": weighted_p,
+        "weighted_recall": weighted_r,
+        "weighted_f1": weighted_f1,
+        "classification_report": report_text,
+        "confusion_matrix": cm,
+    }
