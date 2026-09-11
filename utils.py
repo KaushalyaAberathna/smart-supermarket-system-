@@ -45,3 +45,16 @@ def load_image(image_path):
         raise ValueError(f"Image at '{image_path}' has zero width or height.")
 
     return image
+
+def list_images_in_directory(directory):
+    """List every supported image file in `directory`, sorted by name.
+    Used by main.py to batch-process every basket/product photo in images/.
+    """
+    if not os.path.isdir(directory):
+        raise FileNotFoundError(f"Directory does not exist: {directory}")
+
+    files = sorted(
+        f for f in os.listdir(directory)
+        if f.lower().endswith(SUPPORTED_EXTENSIONS)
+    )
+    return [os.path.join(directory, f) for f in files]
