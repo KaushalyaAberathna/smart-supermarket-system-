@@ -195,3 +195,21 @@ def save_metrics_json(metrics, save_path):
     with open(save_path, "w") as f:
         json.dump(scalar_metrics, f, indent=2)
     print(f"[evaluate] Saved evaluation metrics to: {save_path}")
+
+
+
+def save_report_text(metrics, save_path):
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    with open(save_path, "w") as f:
+        f.write("CLASSIFICATION EVALUATION SUMMARY\n")
+        f.write("=" * 40 + "\n")
+        f.write(f"Accuracy            : {metrics['accuracy'] * 100:.2f}%\n")
+        f.write(f"Macro Precision     : {metrics['macro_precision'] * 100:.2f}%\n")
+        f.write(f"Macro Recall        : {metrics['macro_recall'] * 100:.2f}%\n")
+        f.write(f"Macro F1-score      : {metrics['macro_f1'] * 100:.2f}%\n")
+        f.write(f"Weighted Precision  : {metrics['weighted_precision'] * 100:.2f}%\n")
+        f.write(f"Weighted Recall     : {metrics['weighted_recall'] * 100:.2f}%\n")
+        f.write(f"Weighted F1-score   : {metrics['weighted_f1'] * 100:.2f}%\n")
+        f.write("\nPer-class report:\n")
+        f.write(metrics["classification_report"])
+    print(f"[evaluate] Saved evaluation report to: {save_path}")
