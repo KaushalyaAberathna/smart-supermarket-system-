@@ -149,3 +149,73 @@ def load_split_csv(path):
         reader = csv.reader(f)
         next(reader)  # header
         return [(row[0], row[1]) for row in reader]
+
+
+# tf.data PIPELINE
+
+def _build_augmenter():
+    """Augmentation for the training split only. WHY: several Freiburg
+    classes have well under 200 images (e.g. CORN=97, FLOUR=109) -- flip/
+    rotation/zoom/contrast/translation cheaply synthesize more visual variety
+    and reduce overfitting on those smaller classes. Kept deliberately mild
+    (small factors) since product packaging orientation/text is still
+    meaningful (an upside-down box is unusual), not the aggressive
+    augmentation used for e.g. natural scene photos. Contrast/translation
+    were added alongside the original flip/rotation/zoom to also cover the
+    lighting and framing variation Freiburg's shelf photos show across shots.
+    """
+    return tf.keras.Sequential([
+        tf.keras.layers.RandomFlip("horizontal"),
+        tf.keras.layers.RandomRotation(0.06),
+        tf.keras.layers.RandomZoom(0.12),
+        tf.keras.layers.RandomTranslation(0.05, 0.05),
+        tf.keras.layers.RandomContrast(0.15),
+    ], name="augmentation")
+
+
+def make_dataset(
+    pairs, class_to_index, batch_size, img_size,
+    shuffle=False, augment=False, one_hot=False, num_classes=None,
+):
+    """Build a tf.data.Dataset of (image, label) batches from a list of
+    (relative_path, class_name) pairs.
+
+    Pixel-range normalization ([-1, 1] for MobileNetV2) is NOT done here --
+    it's baked into the model graph itself (see classification.build_model),
+    so this pipeline only decodes, resizes, and (for training) augments,
+    keeping raw 0-255 float images flowing out.
+
+    one_hot=True yields (image, one-hot-vector) instead of (image, int label)
+    -- used only for training/validation, so train_model.py can pair it with
+    CategoricalCrossentropy(label_smoothing=...); evaluate.py keeps the
+    default sparse-int labels since it only needs argmax comparisons, not a
+    loss.
+    """
+    paths = [os.path.join(config.DATASET_DIR, p) for p, _ in pairs]
+    labels = [class_to_index[lbl] for _, lbl in pairs]
+
+    ds = tf.data.Dataset.from_tensor_slices((paths, labels))
+    if shuffle:
+        ds = ds.shuffle(buffer_size=len(paths), seed=config.RANDOM_SEED, reshuffle_each_iteration=True)
+
+    def _load(path, label):
+        image = tf.io.read_file(path)
+        image = tf.image.decode_png(image, channels=3)
+        image = tf.image.resize(image, img_size)
+        if one_hot:
+            label = tf.one_hot(label, num_classes)
+        return image, label
+
+    ds = ds.map(_load, num_parallel_calls=tf.data.AUTOTUNE)
+
+    if augment:
+        augmenter = _build_augmenter()
+        ds = ds.map(lambda x, l: (augmenter(x, training=True), l), num_parallel_calls=tf.data.AUTOTUNE)
+
+    ds = ds.batch(batch_size)
+
+    if augment and one_hot and config.USE_MIXUP:
+        ds = ds.map(lambda x, l: _mixup_batch(x, l, config.MIXUP_ALPHA), num_parallel_calls=tf.data.AUTOTUNE)
+
+    ds = ds.prefetch(tf.data.AUTOTUNE)
+    return ds
