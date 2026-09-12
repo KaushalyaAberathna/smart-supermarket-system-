@@ -48,3 +48,42 @@ class ProductPredictor:
         if image is None:
             raise ValueError(f"Failed to read image at '{image_path}'.")
         return self.predict(image)
+
+    
+_predictor = None
+
+
+def get_predictor():
+    global _predictor
+    if _predictor is None:
+        _predictor = ProductPredictor()
+    return _predictor
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Predict a single supermarket product's class, confidence, and category. "
+                    "Never retrains the model -- run train_model.py first if models/ is empty."
+    )
+    parser.add_argument("--image", type=str, required=True, help="Path to a single product image/crop.")
+    args = parser.parse_args()
+
+    if not os.path.exists(args.image):
+        print(f"[predict] Image not found: {args.image}")
+        return
+
+    try:
+        predictor = get_predictor()
+    except FileNotFoundError as e:
+        print(f"[predict] {e}")
+        return
+
+    result = predictor.predict_path(args.image)
+    print(f"{result['product']}")
+    print(f"Confidence: {result['confidence'] * 100:.1f}%")
+    print(f"Category: {result['category']}")
+
+
+if __name__ == "__main__":
+    main()
+
