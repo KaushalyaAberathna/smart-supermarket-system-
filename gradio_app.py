@@ -162,3 +162,68 @@ def run_full_pipeline(image_rgb):
         bar_fig,
         pie_fig,
     )
+
+
+
+# UI LAYOUT
+
+def build_app():
+    with gr.Blocks(title="Smart Supermarket Product Identification System") as demo:
+        gr.Markdown("# Image Processing Based Smart Supermarket Product Identification System")
+        gr.Markdown(
+            "Classical OpenCV detection/segmentation + a locally-trained MobileNetV2 classifier "
+            f"({config.NUM_CLASSES} product classes). Fully offline -- no cloud inference. "
+            "Upload a basket/table photo with clearly separated products below."
+        )
+        gr.Markdown(_MODEL_ACCURACY_TEXT)
+
+        with gr.Row():
+            image_input = gr.Image(label="Upload Basket / Product Layout Image", type="numpy")
+        analyze_btn = gr.Button("Analyze", variant="primary")
+
+        with gr.Row():
+            original_out = gr.Image(label="Original Image")
+            preprocessed_out = gr.Image(label="Preprocessed Image (final binary mask)")
+        with gr.Row():
+            detected_out = gr.Image(label="Detected Objects")
+            annotated_out = gr.Image(label="Annotated Output (label + category)")
+
+        with gr.Row():
+            total_out = gr.Number(label="Total Products", precision=0)
+        with gr.Row():
+            product_table = gr.Dataframe(
+                label="Detected Product List (Name, Confidence, Category)",
+                headers=["Product #", "Product", "Confidence (%)", "Category"],
+            )
+            category_table = gr.Dataframe(
+                label="Category Counts & Distribution Percentages",
+                headers=["Category", "Count", "Percentage (%)"],
+            )
+
+        report_out = gr.Textbox(label="Console Report", lines=12, max_lines=20)
+
+        with gr.Row():
+            bar_out = gr.Plot(label="Bar Chart -- Product Count by Category")
+            pie_out = gr.Plot(label="Pie Chart -- Category Distribution")
+
+        outputs = [
+            original_out, preprocessed_out, detected_out, annotated_out,
+            product_table, category_table, total_out, report_out,
+            bar_out, pie_out,
+        ]
+
+        # "Every uploaded image should be predicted immediately": firing the
+        # pipeline on .upload() (not just the button) means a fresh upload
+        # runs automatically, with no separate submit step required. The
+        # button is kept as an explicit manual re-run affordance. Gradio
+        # itself places no cap on how many images can be uploaded in a
+        # session, satisfying "allow unlimited image uploads".
+        image_input.upload(fn=run_full_pipeline, inputs=image_input, outputs=outputs)
+        analyze_btn.click(fn=run_full_pipeline, inputs=image_input, outputs=outputs)
+
+    return demo
+
+
+if __name__ == "__main__":
+    app = build_app()
+    app.launch()
