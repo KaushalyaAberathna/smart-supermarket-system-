@@ -103,3 +103,98 @@ performed only once" -- prediction code paths never call it). It will:
 
 On CPU this typically takes on the order of an hour (longer if early
 stopping doesn't trigger early). Progress bars are shown per epoch.
+
+**Current trained model's measured accuracy** (via `evaluate.py`/direct split scoring):
+train 97.6% / validation 84.2% / test 80.5% -- all three clear the project's
+80% target. Getting there took three tuning passes worth knowing about if you
+retrain: plain transfer learning plateaued around 75-77% test accuracy with a
+large train/test gap (~97% vs ~77%) -- classic overfitting once Phase 2
+unfreezes the MobileNetV2 backbone. Adding L2/dropout to the head and even
+`AdamW` weight decay on the backbone barely helped, because at this fine-
+tuning learning rate (3e-5) weight decay's effective per-step shrinkage is
+negligible regardless of the decay coefficient. What actually closed the gap
+was **mixup** augmentation (`config.USE_MIXUP`, see `train_model._mixup_batch`):
+blending random training image/label pairs per batch regularizes independently
+of the learning rate, since it changes what the model is trained on rather
+than how large its weight updates are.
+
+Then evaluate on the held-out test set:
+
+```bash
+python evaluate.py
+```
+
+This writes `output/evaluation_metrics.json`, `output/evaluation_report.txt`
+(accuracy, macro/weighted precision/recall/F1, full per-class report), and
+`output/confusion_matrix.png` / `.csv`. `gradio_app.py` reads
+`evaluation_metrics.json` to display the model's test accuracy in the UI
+header -- re-run `evaluate.py` any time you retrain so that figure stays current.
+
+## 4. Prediction (CLI, single product image)
+
+```bash
+python predict.py --image path/to/one_product_photo.jpg
+```
+
+Prints the predicted product name, confidence, and supermarket category.
+Never retrains -- fails with a clear message if `models/` is empty.
+
+## 5. Running the Full Pipeline (CLI, multi-product photo)
+
+```bash
+python main.py --image images/basket1.jpg
+# or, to process every image in images/:
+python main.py
+# add --no-display to save outputs without popping up matplotlib windows
+```
+
+Saves the annotated image, bar chart, and pie chart to `output/` (or
+`output/<image_name>/` when batch-processing multiple images) and prints the
+console "SMART CHECKOUT REPORT".
+
+## 6. Running the Gradio App
+
+```bash
+python gradio_app.py
+```
+
+Opens a local web UI (URL printed in the console, e.g. `http://127.0.0.1:7860`).
+The trained model is loaded exactly once at startup. Upload a basket/table
+photo with clearly separated products -- the full pipeline runs immediately
+on upload (no separate submit step needed), showing:
+
+- Original image, preprocessed (binary mask) image, detected-objects image,
+  final annotated image
+- Detected product list (name, confidence, category) as a table
+- Category counts and distribution percentages as a table
+- Total product count
+- Console-style report text
+- Bar chart and pie chart of category distribution
+- The model's measured test accuracy (from `evaluate.py`), shown at the top
+
+You can upload as many images as you like in one session; each new upload
+is predicted immediately.
+
+## Expected Folder Structure at Runtime
+
+```
+output/
+  final_annotated.png
+  bar_chart.png
+  pie_chart.png
+  confusion_matrix.png / confusion_matrix.csv
+  evaluation_metrics.json / evaluation_report.txt
+  training_history.png
+models/
+  mobilenetv2_freiburg.keras
+  class_indices.json
+dataset/splits/
+  train.csv / val.csv / test.csv
+```
+
+## Screenshots
+
+See `output/` for generated artifacts from the most recent run:
+`preprocessing_steps_demo.png`, `detected_products_demo.png`,
+`segmented_crops_demo.png`, `final_annotated.png`, `bar_chart.png`,
+`pie_chart.png`, `confusion_matrix.png`, `training_history.png`.
