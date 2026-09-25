@@ -124,6 +124,8 @@ Then evaluate on the held-out test set:
 python evaluate.py
 ```
 
+Checksum
+
 This writes `output/evaluation_metrics.json`, `output/evaluation_report.txt`
 (accuracy, macro/weighted precision/recall/F1, full per-class report), and
 `output/confusion_matrix.png` / `.csv`. `gradio_app.py` reads
